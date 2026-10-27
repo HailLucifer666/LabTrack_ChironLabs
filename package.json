@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "framer-motion": "^14.7.1",
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -27,5 +28,15 @@
     "eslint": "^9.24.0",
     "eslint-config-next": "^15.3.3",
     "typescript": "^5.8.2"
-  }
+  },
+  "description": "A Next.js take-home MVP for Chiron Labs' Forward Deployed Engineer assignment. It demonstrates a cleaner dental case dashboard, date-only due-date handling, a Mark Ready workflow, and an email notification preview with an optional live-send path.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
