@@ -32,14 +32,38 @@ export function isValidDateOnly(value: unknown): value is string {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-/** Returns today's calendar date in the lab's configured IANA time zone. */
-export function todayDateInTimeZone(timeZone = process.env.LAB_TIME_ZONE || "Asia/Kolkata"): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
+const DEFAULT_TIME_ZONE = "Asia/Kolkata";
+
+/**
+ * Returns today's calendar date in the lab's configured IANA time zone.
+ *
+ * `now` is injectable so the time-zone behaviour can be proven against a fixed
+ * instant instead of whenever the test happens to run. An invalid configured
+ * zone must never take every endpoint down with an uncaught RangeError: fall
+ * back to the documented default and say so on the server.
+ */
+export function todayDateInTimeZone(
+  timeZone = process.env.LAB_TIME_ZONE || DEFAULT_TIME_ZONE,
+  now: Date = new Date(),
+): string {
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch {
+    console.warn(`LAB_TIME_ZONE "${timeZone}" is not a valid IANA time zone; falling back to ${DEFAULT_TIME_ZONE}.`);
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: DEFAULT_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  }
+  const parts = formatter.formatToParts(now);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;
 }
