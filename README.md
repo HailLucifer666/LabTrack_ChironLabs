@@ -2,14 +2,14 @@
 
 A Next.js take-home MVP for Chiron Labs' Forward Deployed Engineer assignment. It demonstrates a cleaner dental case dashboard, date-only due-date handling, a Mark Ready workflow, and an email notification preview with an optional live-send path.
 
-> **Demo safety note:** The default configuration is `Demo mode`. Sample cases are synthetic, case edits are stored in the current browser's local storage, and notifications produce an email preview only. No real email is delivered until server-side email credentials are configured. This demo does not include authentication and must not be used with real patient or clinic data without appropriate security work.
+> **Demo safety note:** The default configuration is `Demo mode`. Sample cases are synthetic, case edits are stored in the current browser's local storage, and notifications produce an email preview only. No real email is delivered unless the app is running in database mode, server-side email credentials are configured, and the recipient is not a reserved placeholder address. This demo does not include authentication and must not be used with real patient or clinic data without appropriate security work.
 
 ## Features
 
 - Responsive case dashboard with summary counts, case list, search and status filter.
 - Date-only due dates (`YYYY-MM-DD`), formatted without parsing a date-only string as a timestamp. The lab's time zone is configurable for overdue labelling.
 - Mark a case Ready and trigger an email notification workflow.
-- Explicit test-mode preview showing recipient, subject and body; a configured Resend account can send live email.
+- Explicit test-mode preview showing recipient, subject and body; a configured Resend account can send live email only when the app is also running in database mode.
 - Optional Supabase Postgres persistence for cases and notification status.
 - Synthetic seeded data and SQL schema.
 
@@ -18,7 +18,7 @@ A Next.js take-home MVP for Chiron Labs' Forward Deployed Engineer assignment. I
 - Node.js 20+ (Node.js 22 recommended).
 - npm.
 - Optional: Supabase project for persistent database-backed cases.
-- Optional: Resend account and verified sender for live email delivery.
+- Optional: Resend account and verified sender for live email delivery (requires database mode; demo mode always previews).
 
 ## Run locally
 
@@ -54,6 +54,8 @@ The service-role key is server-side only. Never prefix it with `NEXT_PUBLIC_`, n
 
 ## Enable real email delivery (optional)
 
+Live sending requires all three: Supabase configured (database mode), both email variables below, and a recipient that is not an `@example.com` placeholder.
+
 1. Configure a Resend account and verify the sender domain/address.
 2. Add these environment variables on the server and in Vercel Project Settings → Environment Variables:
 
@@ -71,7 +73,7 @@ If either variable is missing, the API returns a test-mode preview and the UI ex
 | `NEXT_PUBLIC_SUPABASE_URL` | Optional | Enables Supabase-backed case storage when paired with the service key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Optional, server only | Authenticates server route handlers to Supabase |
 | `LAB_TIME_ZONE` | Optional; defaults to `Asia/Kolkata` | IANA zone used to determine the business date for overdue status |
-| `RESEND_API_KEY` | Optional | Enables actual email delivery |
+| `RESEND_API_KEY` | Optional | Enables actual email delivery when the app is in database mode and the recipient is not a placeholder |
 | `EMAIL_FROM` | Optional | Verified sender identity for Resend |
 
 ## Date-handling decision
@@ -85,7 +87,7 @@ For a genuine time-specific deadline, confirm the governing business time zone w
 - `GET /api/cases` — reads cases from Supabase or returns synthetic seeded data in demo mode.
 - `POST /api/cases` — creates a case in Supabase or returns a demo case that is stored in browser local storage.
 - `PATCH /api/cases/:id/ready` — marks a case Ready in Supabase or updates demo state in the browser.
-- `POST /api/cases/:id/notify` — sends via Resend when configured; otherwise returns an explicit test-mode email preview.
+- `POST /api/cases/:id/notify` — sends via Resend only when the app is in database mode, a provider is configured and the recipient is not a placeholder; otherwise returns an explicit test-mode email preview.
 
 ## Deploy to Vercel
 
