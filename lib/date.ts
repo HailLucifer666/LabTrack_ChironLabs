@@ -14,6 +14,24 @@ export function formatDateOnly(isoDate: string): string {
   return `${Number(day)} ${MONTHS[monthIndex]} ${year}`;
 }
 
+/**
+ * True only when the string is a real calendar date in YYYY-MM-DD form.
+ * Compared through UTC components so the check itself can never shift a day,
+ * and so impossible dates (2026-02-31) are rejected at the boundary instead of
+ * being rendered as plausible-looking nonsense.
+ */
+export function isValidDateOnly(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1000) return false;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 /** Returns today's calendar date in the lab's configured IANA time zone. */
 export function todayDateInTimeZone(timeZone = process.env.LAB_TIME_ZONE || "Asia/Kolkata"): string {
   const parts = new Intl.DateTimeFormat("en-CA", {

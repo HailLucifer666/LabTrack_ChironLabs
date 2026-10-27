@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:dates": "node scripts/date-smoke-test.mjs"
+    "test:dates": "node scripts/date-smoke-test.mjs",
+    "test:demo": "node scripts/demo-smoke-test.mjs",
+    "test": "npm run test:dates && npm run test:demo"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

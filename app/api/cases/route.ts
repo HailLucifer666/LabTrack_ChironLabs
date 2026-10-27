@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { seedCases } from "@/lib/seed-data";
-import { todayDateInTimeZone } from "@/lib/date";
+import { todayDateInTimeZone, isValidDateOnly } from "@/lib/date";
 import { fromDbCase } from "@/lib/case-mapping";
 import { getSupabaseServer, isDatabaseConfigured } from "@/lib/supabase-server";
 
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!body || typeof body.clinicName !== "string" || typeof body.clinicEmail !== "string" || typeof body.caseType !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.dueDate || "")) {
+  if (!body || typeof body.clinicName !== "string" || typeof body.clinicEmail !== "string" || typeof body.caseType !== "string" || !isValidDateOnly(body.dueDate)) {
     return NextResponse.json({ error: "Provide a clinic, valid email, case type and date-only due date." }, { status: 400 });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.clinicEmail)) {

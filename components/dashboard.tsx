@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { formatDateOnly, isCaseOverdue } from "@/lib/date";
+import { formatDateOnly, isCaseOverdue, isValidDateOnly } from "@/lib/date";
+import { sanitizeStoredCases } from "@/lib/demo-state";
 import type { CaseListResponse, EmailPreview, LabCase } from "@/lib/types";
 
 type Filter = "ALL" | "IN_PROGRESS" | "READY" | "OVERDUE";
@@ -61,8 +62,8 @@ export default function Dashboard() {
         try {
           const local = window.localStorage.getItem("labtrack-cases-v1");
           if (local) {
-            const parsed: unknown = JSON.parse(local);
-            if (Array.isArray(parsed)) nextCases = parsed as LabCase[];
+            const sanitized = sanitizeStoredCases(JSON.parse(local));
+            if (sanitized) nextCases = sanitized;
           }
         } catch { /* Ignore invalid browser-local demo state and use server seed data. */ }
       }
@@ -135,8 +136,8 @@ export default function Dashboard() {
 
   async function createCase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!newCase.clinicName.trim() || !newCase.clinicEmail.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(newCase.dueDate)) {
-      setNotice({ kind: "error", text: "Enter a clinic, valid email and due date." }); return;
+    if (!newCase.clinicName.trim() || !newCase.clinicEmail.trim() || !isValidDateOnly(newCase.dueDate)) {
+      setNotice({ kind: "error", text: "Enter a clinic, valid email and a real calendar due date." }); return;
     }
     const existingNumbers = cases.map((item) => Number(item.reference.replace(/\D/g, ""))).filter(Number.isFinite);
     const reference = `LT-${Math.max(1040, ...existingNumbers) + 1}`;
