@@ -827,41 +827,6 @@ h1 em {
   text-transform: uppercase;
 }
 
-.readiness-legend {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.readiness-legend > div {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-
-.readiness-legend dt {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.readiness-legend dd {
-  padding-left: 14px;
-  color: var(--ink);
-  font-size: 20px;
-  font-weight: 650;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
 .legend-mark {
   display: inline-block;
   flex: 0 0 8px;
@@ -2304,34 +2269,7 @@ kbd {
     margin: 6px auto 0;
   }
 
-  .readiness-card .readiness-legend {
-    grid-column: 2;
-    grid-row: 2;
-    grid-template-columns: 1fr;
-    gap: 0;
-    align-self: center;
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
-  }
-
-  .readiness-legend > div {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .readiness-legend > div:last-child { border-bottom: 0; }
-
-  .readiness-legend dd {
-    padding-left: 0;
-    font-size: 22px;
-  }
-
-  .table-wrap,
+    .table-wrap,
   .skeleton-table { display: none; }
 
   .case-cards {
@@ -2412,29 +2350,7 @@ kbd {
     margin: 8px auto;
   }
 
-  .readiness-card .readiness-legend {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: auto;
-    padding-top: 14px;
-    border-top: 1px solid var(--line);
-  }
-
-  .readiness-legend > div {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 5px;
-    padding: 0;
-    border-bottom: 0;
-  }
-
-  .readiness-legend dd {
-    padding-left: 14px;
-    font-size: 20px;
-  }
-
-  .timeline-card { padding: 18px 16px 14px; }
+    .timeline-card { padding: 18px 16px 14px; }
 
   .timeline-head h2 { font-size: 24px; }
 
@@ -2621,14 +2537,7 @@ kbd {
 
   .topbar-actions { gap: 8px; }
 
-  .readiness-legend dt { font-size: 11px; }
-
-  .readiness-legend dd {
-    padding-left: 13px;
-    font-size: 18px;
-  }
-
-  .timeline-weekday { font-size: 10px; }
+    .timeline-weekday { font-size: 10px; }
 
   .timeline-day { gap: 4px; }
 
