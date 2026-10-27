@@ -35,6 +35,7 @@ try {
   assert.equal(isValidDateOnly("2026-02-31"), false);
   assert.equal(isValidDateOnly("2026-13-01"), false);
   assert.equal(isValidDateOnly("2026-00-10"), false);
+  assert.equal(isValidDateOnly("0999-12-31"), false, "Years below 1000 are rejected, not treated as plausible due dates");
   assert.equal(isValidDateOnly("2026-10-29T00:00:00Z"), false, "Only date-only strings are accepted");
   assert.equal(isValidDateOnly(20261029), false);
 
