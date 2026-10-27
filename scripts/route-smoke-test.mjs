@@ -141,7 +141,11 @@ try {
   for (const [label, body] of [
     ["whitespace-only case type", { clinicName: "A", clinicEmail: "a@b.co", caseType: "   ", dueDate: "2026-11-10" }],
     ["whitespace-only clinic", { clinicName: "  ", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-11-10" }],
+    ["malformed clinic email", { clinicName: "A", clinicEmail: "not-an-email", caseType: "Crown", dueDate: "2026-11-10" }],
     ["empty supplied id", { id: "  ", clinicName: "A", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-11-10" }],
+    ["non-string supplied id", { id: 7, clinicName: "A", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-11-10" }],
+    ["empty supplied reference", { reference: "  ", clinicName: "A", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-11-10" }],
+    ["non-string supplied reference", { reference: 7, clinicName: "A", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-11-10" }],
     ["impossible calendar date", { clinicName: "A", clinicEmail: "a@b.co", caseType: "Crown", dueDate: "2026-02-31" }],
   ]) {
     const res = await postCase(body);

@@ -82,6 +82,7 @@ try {
     assert.ok(notice.includes("no email was delivered"), `${reason} must state nothing was delivered`);
   }
   assert.ok(previewNotice("demo-workspace").includes("never send real email"));
+  assert.ok(previewNotice("synthetic-recipient").includes("reserved"), "Placeholder-recipient previews must say the address is reserved");
 
   console.log("Notify-decision matrix passed: demo never sends (even with credentials); live send requires database + provider + real recipient.");
 } finally {
