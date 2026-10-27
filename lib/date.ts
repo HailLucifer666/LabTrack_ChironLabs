@@ -35,6 +35,22 @@ export function isValidDateOnly(value: unknown): value is string {
 const DEFAULT_TIME_ZONE = "Asia/Kolkata";
 
 /**
+ * Returns the configured IANA zone only when Intl accepts it; otherwise the
+ * documented default. Callers that echo the zone back to the client must use
+ * this, so the reported zone can never disagree with the date that was computed.
+ */
+export function resolveTimeZone(value: string | undefined = process.env.LAB_TIME_ZONE || DEFAULT_TIME_ZONE): string {
+  const candidate = value || DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: candidate }).format(new Date(0));
+    return candidate;
+  } catch {
+    console.warn(`LAB_TIME_ZONE "${candidate}" is not a valid IANA time zone; falling back to ${DEFAULT_TIME_ZONE}.`);
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+/**
  * Returns today's calendar date in the lab's configured IANA time zone.
  *
  * `now` is injectable so the time-zone behaviour can be proven against a fixed
@@ -46,23 +62,13 @@ export function todayDateInTimeZone(
   timeZone = process.env.LAB_TIME_ZONE || DEFAULT_TIME_ZONE,
   now: Date = new Date(),
 ): string {
-  let formatter: Intl.DateTimeFormat;
-  try {
-    formatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  } catch {
-    console.warn(`LAB_TIME_ZONE "${timeZone}" is not a valid IANA time zone; falling back to ${DEFAULT_TIME_ZONE}.`);
-    formatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone: DEFAULT_TIME_ZONE,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  }
+  const effectiveZone = resolveTimeZone(timeZone);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: effectiveZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
   const parts = formatter.formatToParts(now);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;

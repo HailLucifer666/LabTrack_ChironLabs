@@ -126,9 +126,20 @@ export default function Dashboard() {
       if (!response.ok) throw new Error(result.error || "Notification could not be prepared.");
       setEmailMode(result.mode);
       setPreview(result.email || null);
-      const nextCases = cases.map((entry) => entry.id === item.id ? { ...entry, notificationStatus: result.status, updatedAt: new Date().toISOString() } : entry);
-      setCases(nextCases); persistDemoCases(nextCases);
-      setNotice({ kind: result.mode === "test" ? "info" : "success", text: result.mode === "test" ? "Test-mode preview created. No email was delivered." : "Email provider accepted the notification." });
+      // In database mode `persisted:false` means the PREVIEWED write failed, so
+      // do not mark the row as notified locally — that would be a success claim
+      // the next reload silently retracts. In demo mode the browser's own
+      // localStorage is the store, so `persisted:false` from the server is expected.
+      const statusSaved = dataMode === "demo" || result.persisted === true;
+      if (statusSaved) {
+        const nextCases = cases.map((entry) => entry.id === item.id ? { ...entry, notificationStatus: result.status, updatedAt: new Date().toISOString() } : entry);
+        setCases(nextCases); persistDemoCases(nextCases);
+      }
+      const baseNotice = result.mode === "test" ? "Test-mode preview created. No email was delivered." : "Email provider accepted the notification.";
+      setNotice({
+        kind: result.mode === "test" ? "info" : "success",
+        text: statusSaved ? baseNotice : `${baseNotice} The case status could not be saved — reload before retrying.`,
+      });
     } catch (error) {
       setNotice({ kind: "error", text: error instanceof Error ? error.message : "Notification could not be sent." });
     } finally { setBusyId(null); }

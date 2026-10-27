@@ -59,9 +59,20 @@ try {
     "A demo workspace must never send, even with RESEND_API_KEY configured",
   );
 
-  // Placeholder detection is case-insensitive and suffix-anchored.
-  assert.equal(isSyntheticRecipient("CLINIC@EXAMPLE.COM"), true);
-  assert.equal(isSyntheticRecipient("clinic@example.com.evil.test"), false, "Suffix match must be anchored");
+  // Placeholder detection is case-insensitive, covers every RFC 2606 / RFC 6761
+  // reserved domain, and is suffix-anchored so a real domain cannot borrow one.
+  for (const reserved of [
+    "CLINIC@EXAMPLE.COM",
+    "clinic@example.net",
+    "clinic@example.org",
+    "clinic@lab.test",
+    "clinic@lab.invalid",
+    "clinic@localhost.localhost",
+    "clinic@mail.example",
+  ]) {
+    assert.equal(isSyntheticRecipient(reserved), true, `${reserved} is a reserved placeholder domain`);
+  }
+  assert.equal(isSyntheticRecipient("clinic@example.com.evil.io"), false, "Suffix match must be anchored");
   assert.equal(isSyntheticRecipient("notexample@corp.io"), false);
 
   // Every preview reason maps to an explicit, non-empty disclosure.

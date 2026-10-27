@@ -14,11 +14,16 @@ export interface NotifyConfig {
 }
 
 /**
- * Recipients at example.com are reserved placeholders (RFC 2606); the seeded
- * demo cases all use them. They are never a valid live delivery target.
+ * Recipients in reserved domains (RFC 2606 / RFC 6761) are placeholders, never
+ * a valid live delivery target: example.com/.net/.org plus the .test, .invalid,
+ * .localhost and .example TLDs. Anchored at the end so `clinic@example.com.evil.io`
+ * is still treated as a real address.
  */
+const RESERVED_RECIPIENT =
+  /@(?:example\.(?:com|net|org)|(?:[a-z0-9-]+\.)+(?:test|invalid|localhost|example))$/i;
+
 export function isSyntheticRecipient(email: string): boolean {
-  return /@example\.com$/i.test(email);
+  return RESERVED_RECIPIENT.test(email.trim());
 }
 
 /**

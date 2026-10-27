@@ -3,6 +3,7 @@ import { seedCases } from "@/lib/seed-data";
 import { fromDbCase } from "@/lib/case-mapping";
 import { getSupabaseServer, isDatabaseConfigured } from "@/lib/supabase-server";
 import { decideNotification, previewNotice } from "@/lib/notify-decision";
+import { sanitizeStoredCases } from "@/lib/demo-state";
 import type { LabCase } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -38,8 +39,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     item = fromDbCase(data);
   } else {
     const body = await request.json().catch(() => ({}));
-    const submitted = body?.case as LabCase | undefined;
-    item = submitted && submitted.id === id ? submitted : seedCases.find((candidate) => candidate.id === id);
+    if (body?.case !== undefined) {
+      // The demo client supplies the whole case, so treat it as untrusted input:
+      // the same validator that guards localStorage is the one shape that may
+      // reach emailForCase. A malformed field used to throw inside escapeHtml
+      // and return 500 for what is really a bad request.
+      const validated = sanitizeStoredCases([body.case]);
+      if (!validated || validated.length !== 1 || validated[0].id !== id) {
+        return NextResponse.json({ error: "The submitted case payload is invalid." }, { status: 400 });
+      }
+      item = validated[0];
+    } else {
+      item = seedCases.find((candidate) => candidate.id === id);
+    }
   }
   if (!item) return NextResponse.json({ error: "Case not found." }, { status: 404 });
   if (item.status !== "READY") return NextResponse.json({ error: "Mark the case ready before notifying the clinic." }, { status: 409 });
@@ -49,7 +61,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // against a real Supabase project; this build is demo-only and no database is
   // configured, so the race is documented here rather than half-fixed. Revisit
   // before any live deployment.
-  if (item.notificationStatus === "SENT") return NextResponse.json({ error: "A live notification has already been sent for this case." }, { status: 409 });
+  if (item.notificationStatus === "SENT") {
+    return NextResponse.json({
+      error: databaseConfigured
+        ? "A live notification has already been sent for this case."
+        : "This demo case is already marked as notified.",
+    }, { status: 409 });
+  }
   if (!item.clinicEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.clinicEmail)) {
     return NextResponse.json({ error: "This case has no valid clinic email address." }, { status: 400 });
   }
@@ -73,9 +91,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (!response.ok) return NextResponse.json({ error: "Email provider rejected the message. Check server-side email configuration.", providerStatus: response.status }, { status: 502 });
       if (databaseConfigured) {
         const supabase = getSupabaseServer();
-        const { error: updateError } = await supabase!.from("cases").update({ notification_status: "SENT", updated_at: new Date().toISOString() }).eq("id", id);
-        if (updateError) {
-          console.error("notify: provider accepted the message but the SENT status write failed", updateError);
+        const { data: updatedRows, error: updateError } = await supabase!
+          .from("cases")
+          .update({ notification_status: "SENT", updated_at: new Date().toISOString() })
+          .eq("id", id)
+          .select("id");
+        // `.update()` returns no error when zero rows match, so the row count is
+        // checked too: a case deleted between read and write must not be reported
+        // as a successful send.
+        if (updateError || !updatedRows || updatedRows.length === 0) {
+          console.error("notify: provider accepted the message but the SENT status write failed or matched no row", updateError);
           return NextResponse.json({ error: "The email provider accepted the message, but the case status could not be saved. Do not retry without checking the database.", partial: true }, { status: 500 });
         }
       }
@@ -88,9 +113,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   let persisted = false;
   if (databaseConfigured) {
     const supabase = getSupabaseServer();
-    const { error: updateError } = await supabase!.from("cases").update({ notification_status: "PREVIEWED", updated_at: new Date().toISOString() }).eq("id", id);
-    if (updateError) console.error("notify: PREVIEWED status write failed", updateError);
-    else persisted = true;
+    const { data: updatedRows, error: updateError } = await supabase!
+      .from("cases")
+      .update({ notification_status: "PREVIEWED", updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id");
+    if (updateError || !updatedRows || updatedRows.length === 0) {
+      console.error("notify: PREVIEWED status write failed or matched no row", updateError);
+    } else {
+      persisted = true;
+    }
   }
   return NextResponse.json({ ok: true, mode: "test", status: "PREVIEWED", persisted, email, notice: previewNotice(decision.reason) });
 }
