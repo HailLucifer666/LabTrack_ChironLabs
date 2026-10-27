@@ -28,11 +28,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Run the date-only regression smoke test after installing dependencies:
+Run the test suite after installing dependencies:
 
 ```bash
-npm run test:dates
+npm test
 ```
+
+This runs three compiled-in-place smoke suites: date-only formatting and time-zone rollover (`test:dates`), demo-state sanitising of hostile/corrupted browser storage (`test:demo`), and the notification send/preview boundary matrix (`test:notify`).
 
 Open `http://localhost:3000`. With no Supabase or Resend credentials, the app runs in clearly labelled demo mode.
 
@@ -60,7 +62,7 @@ RESEND_API_KEY=re_...
 EMAIL_FROM=LabTrack <notifications@your-verified-domain.example>
 ```
 
-If either variable is missing, the API returns a test-mode preview and the UI explicitly says **no email was delivered**. If live mode is configured, the server sends email via Resend; no secret is bundled into client JavaScript.
+If either variable is missing, the API returns a test-mode preview and the UI explicitly says **no email was delivered**. In demo mode (no Supabase configuration) the API always returns a preview and never contacts the provider, even if both email variables are set — demo workspaces cannot send real email. If live mode is configured, the server sends email via Resend; no secret is bundled into client JavaScript.
 
 ## Environment variables
 
