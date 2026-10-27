@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test:dates": "node scripts/date-smoke-test.mjs",
     "test:demo": "node scripts/demo-smoke-test.mjs",
-    "test": "npm run test:dates && npm run test:demo"
+    "test:notify": "node scripts/notify-smoke-test.mjs",
+    "test": "npm run test:dates && npm run test:demo && npm run test:notify"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

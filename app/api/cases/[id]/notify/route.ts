@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { seedCases } from "@/lib/seed-data";
 import { getSupabaseServer, isDatabaseConfigured } from "@/lib/supabase-server";
+import { decideNotification, previewNotice } from "@/lib/notify-decision";
 import type { LabCase } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -27,8 +28,9 @@ function emailForCase(item: LabCase) {
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  const databaseConfigured = isDatabaseConfigured();
   let item: LabCase | undefined;
-  if (isDatabaseConfigured()) {
+  if (databaseConfigured) {
     const supabase = getSupabaseServer();
     const { data, error } = await supabase!.from("cases").select("*").eq("id", id).single();
     if (error || !data) return NextResponse.json({ error: "Case not found." }, { status: 404 });
@@ -58,8 +60,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const email = emailForCase(item);
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
-  const syntheticRecipient = item.clinicEmail.toLowerCase().endsWith("@example.com");
-  if (apiKey && from && !syntheticRecipient) {
+  const decision = decideNotification(item, {
+    databaseConfigured,
+    providerConfigured: Boolean(apiKey && from),
+  });
+
+  if (decision.action === "send") {
     try {
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -68,7 +74,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) return NextResponse.json({ error: "Email provider rejected the message. Check server-side email configuration.", providerStatus: response.status }, { status: 502 });
-      if (isDatabaseConfigured()) {
+      if (databaseConfigured) {
         const supabase = getSupabaseServer();
         await supabase!.from("cases").update({ notification_status: "SENT", updated_at: new Date().toISOString() }).eq("id", id);
       }
@@ -78,12 +84,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
   }
 
-  if (isDatabaseConfigured()) {
+  if (databaseConfigured) {
     const supabase = getSupabaseServer();
     await supabase!.from("cases").update({ notification_status: "PREVIEWED", updated_at: new Date().toISOString() }).eq("id", id);
   }
-  const notice = syntheticRecipient && apiKey && from
-    ? "TEST MODE — sample recipient is reserved and no email was delivered."
-    : "TEST MODE — no email was delivered.";
-  return NextResponse.json({ ok: true, mode: "test", status: "PREVIEWED", email, notice });
+  return NextResponse.json({ ok: true, mode: "test", status: "PREVIEWED", email, notice: previewNotice(decision.reason) });
 }
