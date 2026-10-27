@@ -26,8 +26,8 @@ function Icon({ name, size = 18 }: { name: "logo" | "search" | "plus" | "calenda
   }
 }
 
-function getDisplayStatus(item: LabCase, todayDate: string): { label: string; className: string; overdue: boolean } {
-  const overdue = isCaseOverdue(item.dueDate, item.status, todayDate);
+function getDisplayStatus(item: LabCase, todayDate: string | null): { label: string; className: string; overdue: boolean } {
+  const overdue = todayDate !== null && isCaseOverdue(item.dueDate, item.status, todayDate);
   if (overdue) return { label: "Overdue", className: "status-overdue", overdue: true };
   if (item.status === "READY") return { label: "Ready", className: "status-ready", overdue: false };
   return { label: "In progress", className: "status-progress", overdue: false };
@@ -35,7 +35,7 @@ function getDisplayStatus(item: LabCase, todayDate: string): { label: string; cl
 
 export default function Dashboard() {
   const [cases, setCases] = useState<LabCase[]>([]);
-  const [todayDate, setTodayDate] = useState("2026-10-27");
+  const [todayDate, setTodayDate] = useState<string | null>(null);
   const [dataMode, setDataMode] = useState<"database" | "demo">("demo");
   const [labTimeZone, setLabTimeZone] = useState("Asia/Kolkata");
   const [query, setQuery] = useState("");
@@ -187,7 +187,7 @@ export default function Dashboard() {
 
         <div className="page-content" id="cases">
           <div className="page-heading">
-            <div><div className="eyebrow">LAB OPERATIONS <span aria-hidden="true">/</span> {formatDateOnly(todayDate).toUpperCase()}</div><h1>Case overview</h1><p>Your lab at a glance. Prioritise production, deadlines and clinic handoffs.</p></div>
+            <div><div className="eyebrow">LAB OPERATIONS {todayDate && <><span aria-hidden="true">/</span> {formatDateOnly(todayDate).toUpperCase()}</>}</div><h1>Case overview</h1><p>Your lab at a glance. Prioritise production, deadlines and clinic handoffs.</p></div>
             <button className="primary-button" onClick={() => setIsNewCaseOpen(true)}><Icon name="plus" size={17} /> New case</button>
           </div>
 
