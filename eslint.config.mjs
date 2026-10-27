@@ -8,7 +8,18 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
+  {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "next-env.d.ts",
+      // kee preflight checks the branch out into .worktrees/ with its own .next.
+      // Without these, `npm run lint` in the main checkout scans generated types
+      // and reports hundreds of errors in files nobody wrote.
+      ".worktrees/**",
+      ".cache/**",
+    ],
+  },
 ];
 
 export default eslintConfig;
