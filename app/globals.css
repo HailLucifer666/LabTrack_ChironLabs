@@ -886,6 +886,12 @@ h1 em {
   transform: rotate(45deg);
 }
 
+.mark-today {
+  border-radius: 2px;
+  background: var(--amber);
+  transform: rotate(45deg);
+}
+
 .metrics-grid {
   display: grid;
   grid-auto-rows: 1fr;
@@ -1141,6 +1147,14 @@ h1 em {
 .dot-overdue {
   border-radius: 2px;
   background: var(--red);
+  transform: rotate(45deg);
+}
+
+/* "Due today" sits between upcoming and overdue (amber, not red): it is
+   pressure, not lateness, per the documented deadline policy. */
+.dot-today {
+  border-radius: 2px;
+  background: var(--amber);
   transform: rotate(45deg);
 }
 
@@ -1564,7 +1578,39 @@ kbd {
 
 .status-ready { background: var(--green-soft); color: var(--green); }
 .status-progress { background: var(--blue-soft); color: var(--blue); }
-.status-overdue { background: var(--red-soft); color: var(--red); }
+
+/* Status + deadline badges stack inside one cell; they are separate product
+   signals, so they wrap instead of squeezing. */
+.status-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.deadline-overdue {
+  background: var(--red-soft);
+  border-color: var(--red-line);
+  color: var(--red);
+}
+
+.deadline-today {
+  background: var(--amber-soft);
+  border-color: var(--amber-line);
+  color: var(--amber);
+}
 
 .notification-state {
   display: inline-flex;

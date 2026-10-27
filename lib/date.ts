@@ -74,6 +74,21 @@ export function todayDateInTimeZone(
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-export function isCaseOverdue(dueDate: string, status: string, todayDate: string): boolean {
-  return status !== "READY" && dueDate < todayDate;
+/**
+ * Deadline condition is derived from the calendar dates alone and is deliberately
+ * independent of production status. An overdue case may still be running in the
+ * lab (needs work) or already be ready for the clinic (needs collection) — hiding
+ * either case behind the READY badge previously let ready-but-past-due cases sit
+ * unnoticed. Comparison is a plain string compare on YYYY-MM-DD, which is exact
+ * for date-only values and cannot shift a day.
+ */
+export function isCaseOverdue(dueDate: string, todayDate: string): boolean {
+  return dueDate < todayDate;
+}
+
+/** "Due today" is pressure, not lateness: the deadline policy treats today as
+ * the last legitimate working day, so a case due today is not overdue until the
+ * day has passed. */
+export function isDueToday(dueDate: string, todayDate: string): boolean {
+  return dueDate === todayDate;
 }

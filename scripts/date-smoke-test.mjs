@@ -14,19 +14,33 @@ const compiled = ts.transpileModule(source, {
 const tempFile = path.join(os.tmpdir(), `labtrack-date-${process.pid}.mjs`);
 fs.writeFileSync(tempFile, compiled, "utf8");
 try {
-  const { formatDateOnly, isValidDateOnly, isCaseOverdue, todayDateInTimeZone } = await import(pathToFileURL(tempFile).href);
+  const { formatDateOnly, isValidDateOnly, isCaseOverdue, isDueToday, todayDateInTimeZone } = await import(pathToFileURL(tempFile).href);
 
   // formatDateOnly must never route through an instant. The TZ loop below is
   // vacuous against today's pure-regex implementation by construction, but it
   // fails loudly if anyone reintroduces `new Date(isoDate)` here.
-  for (const timeZone of ["Asia/Kolkata", "Europe/London", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Honolulu"]) {
+  for (const timeZone of ["UTC", "Asia/Kolkata", "Europe/London", "America/New_York", "Asia/Tokyo", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Honolulu"]) {
     process.env.TZ = timeZone;
     assert.equal(formatDateOnly("2026-10-29"), "29 Oct 2026", `Calendar date shifted in ${timeZone}`);
   }
+  process.env.TZ = "UTC";
   assert.equal(formatDateOnly("2026-02-03"), "3 Feb 2026");
-  assert.equal(isCaseOverdue("2026-10-25", "IN_PROGRESS", "2026-10-27"), true);
-  assert.equal(isCaseOverdue("2026-10-27", "IN_PROGRESS", "2026-10-27"), false);
-  assert.equal(isCaseOverdue("2026-10-25", "READY", "2026-10-27"), false);
+
+  // Overdue is a pure calendar condition and is independent of production
+  // status: a ready case past its date is still overdue (it needs collecting),
+  // and "due today" is never overdue until the day has passed.
+  assert.equal(isCaseOverdue("2026-10-25", "2026-10-27"), true);
+  assert.equal(isCaseOverdue("2026-10-27", "2026-10-27"), false, "Due today is not overdue");
+  assert.equal(isCaseOverdue("2026-10-25", "2024-02-28"), false, "Compare against the given business date, not wall-clock order");
+  assert.equal(isDueToday("2026-10-27", "2026-10-27"), true);
+  assert.equal(isDueToday("2026-10-26", "2026-10-27"), false);
+  assert.equal(isDueToday("2026-10-28", "2026-10-27"), false);
+
+  // Calendar boundaries must not shift a day in overdue comparisons.
+  assert.equal(isCaseOverdue("2026-02-28", "2026-03-01"), true, "Non-leap Feb month end is overdue by March");
+  assert.equal(isCaseOverdue("2024-02-29", "2024-03-01"), true, "Leap day is overdue by March 1");
+  assert.equal(isCaseOverdue("2025-12-31", "2026-01-01"), true, "Year boundary is overdue");
+  assert.equal(isCaseOverdue("2026-01-01", "2025-12-31"), false);
 
   // Calendar-date validation (shared boundary for API and demo storage).
   assert.equal(isValidDateOnly("2026-10-29"), true);
@@ -71,7 +85,7 @@ try {
     console.warn = originalWarn;
   }
 
-  console.log("Date tests passed: date-only formatting across five zones, calendar validation, TZ rollover at a fixed instant, env honouring, invalid-zone fallback.");
+  console.log("Date tests passed: date-only formatting across eight zones, calendar validation, overdue and due-today policy, TZ rollover at a fixed instant, env honouring, invalid-zone fallback.");
 } finally {
   fs.rmSync(tempFile, { force: true });
 }

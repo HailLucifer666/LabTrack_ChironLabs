@@ -10,12 +10,22 @@ import {
   type ReactNode,
 } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { formatDateOnly, isCaseOverdue, isValidDateOnly } from "@/lib/date";
+import { formatDateOnly, isCaseOverdue, isDueToday, isValidDateOnly } from "@/lib/date";
 import { sanitizeStoredCases } from "@/lib/demo-state";
 import type { CaseListResponse, EmailPreview, LabCase } from "@/lib/types";
 
 type Filter = "ALL" | "IN_PROGRESS" | "READY" | "OVERDUE";
 type Notice = { kind: "success" | "error" | "info"; text: string } | null;
+/** Production status and the deadline condition are separate product concepts:
+ * status is where the case is in the lab; deadline is where it is against the
+ * calendar. A ready case can still be past due (needs collecting), and an
+ * in-progress case overdue (needs work) — neither is folded into the other. */
+type DeadlineKind = "overdue" | "today" | "upcoming";
+type DisplayCondition = {
+  status: "IN_PROGRESS" | "READY";
+  deadline: DeadlineKind;
+  overdue: boolean;
+};
 type IconName =
   | "logo"
   | "menu"
@@ -125,11 +135,11 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   }
 }
 
-function getDisplayStatus(item: LabCase, todayDate: string | null): { label: string; className: string; overdue: boolean } {
-  const overdue = todayDate !== null && isCaseOverdue(item.dueDate, item.status, todayDate);
-  if (overdue) return { label: "Overdue", className: "status-overdue", overdue: true };
-  if (item.status === "READY") return { label: "Ready", className: "status-ready", overdue: false };
-  return { label: "In progress", className: "status-progress", overdue: false };
+function getDisplayStatus(item: LabCase, todayDate: string | null): DisplayCondition {
+  const overdue = todayDate !== null && isCaseOverdue(item.dueDate, todayDate);
+  const dueToday = !overdue && todayDate !== null && isDueToday(item.dueDate, todayDate);
+  const deadline: DeadlineKind = overdue ? "overdue" : dueToday ? "today" : "upcoming";
+  return { status: item.status, deadline, overdue };
 }
 
 function dateOnlyToUtc(value: string): Date | null {
@@ -195,7 +205,8 @@ function caseTag(caseType: string): string {
 
 function timelineDotClass(display: ReturnType<typeof getDisplayStatus>): string {
   if (display.overdue) return "dot-overdue";
-  if (display.className === "status-ready") return "dot-ready";
+  if (display.deadline === "today") return "dot-today";
+  if (display.status === "READY") return "dot-ready";
   return "dot-progress";
 }
 
@@ -314,6 +325,9 @@ export default function Dashboard() {
 
   const decoratedCases = useMemo(() => cases.map((item) => ({ item, display: getDisplayStatus(item, todayDate) })), [cases, todayDate]);
   const counts = useMemo(() => ({
+    // Overdue is a deadline condition, not a status: it counts cases past
+    // their calendar due date regardless of whether they are in progress or
+    // already ready, so the three cards can overlap by design.
     total: cases.length,
     progress: decoratedCases.filter(({ item }) => item.status === "IN_PROGRESS").length,
     ready: decoratedCases.filter(({ item }) => item.status === "READY").length,
@@ -557,12 +571,13 @@ export default function Dashboard() {
               <Metric label="Total cases" value={counts.total} detail="Across all clinics" icon="calendar" tone="sage" total={counts.total} />
               <Metric label="In progress" value={counts.progress} detail="Currently in production" icon="clock" tone="blue" total={counts.total} />
               <Metric label="Ready for clinic" value={counts.ready} detail="Awaiting collection" icon="check" tone="green" total={counts.total} />
-              <Metric label="Overdue" value={counts.overdue} detail="Needs attention" icon="alert" tone="amber" total={counts.total} />
+              <Metric label="Overdue" value={counts.overdue} detail="Past due · any status" icon="alert" tone="amber" total={counts.total} />
             </div>
           </section>
 
-          {timeline ? <DueTimeline data={timeline} /> : isLoading ? <TimelineSkeleton /> : null}
-
+          {/* The case list is the operator's primary surface: it renders before
+              the schedule pulse so production work is reachable without
+              scrolling past analytics on a desktop viewport. */}
           <section className="cases-panel" aria-labelledby="cases-title" aria-busy={isLoading}>
             <div className="panel-head">
               <div>
@@ -660,7 +675,12 @@ export default function Dashboard() {
                               {display.overdue && <span className="due-caption">Past due</span>}
                             </div>
                           </td>
-                          <td><StatusPill display={display} /></td>
+                          <td>
+                            <div className="status-stack">
+                              <StatusPill display={display} />
+                              <DeadlineBadge display={display} />
+                            </div>
+                          </td>
                           <td><NotificationLabel status={item.notificationStatus} /></td>
                           <td>
                             <div className="row-actions">
@@ -684,7 +704,10 @@ export default function Dashboard() {
                             <span className="case-type">{item.caseType}</span>
                           </div>
                         </div>
-                        <StatusPill display={display} />
+                        <div className="status-stack">
+                          <StatusPill display={display} />
+                          <DeadlineBadge display={display} />
+                        </div>
                       </div>
                       <div className="case-card-clinic">
                         <span className="meta-label">Clinic</span>
@@ -718,6 +741,8 @@ export default function Dashboard() {
               </span>
             </div>
           </section>
+
+          {timeline ? <DueTimeline data={timeline} /> : isLoading ? <TimelineSkeleton /> : null}
 
           <footer className="page-footer">
             <span>© 2026 LabTrack · Dental lab operations</span>
@@ -835,7 +860,11 @@ function ReadinessGauge({ counts }: { counts: Counts }) {
         </div>
         <span className="soft-badge">{counts.total} {caseWord}</span>
       </div>
-      <div className="gauge" role="img" aria-label={`${percentage} percent ready for clinic: ${counts.ready} of ${counts.total} ${caseWord}.`}>
+      <div
+        className="gauge"
+        role="img"
+        aria-label={`${percentage} percent ready for clinic: ${counts.ready} of ${counts.total} ${caseWord}. The ready share of all cases; in-progress and overdue counts are shown in the metric cards beside this gauge.`}
+      >
         <svg viewBox="0 0 180 180" aria-hidden="true" focusable="false">
           <defs>
             <linearGradient id="readiness-gradient" x1="0" y1="0" x2="1" y2="1">
@@ -866,11 +895,10 @@ function ReadinessGauge({ counts }: { counts: Counts }) {
           <span>ready</span>
         </div>
       </div>
-      <dl className="readiness-legend">
-        <div><dt><span className="legend-mark mark-ready" aria-hidden="true" />Ready</dt><dd>{counts.ready}</dd></div>
-        <div><dt><span className="legend-mark mark-progress" aria-hidden="true" />In progress</dt><dd>{counts.progress}</dd></div>
-        <div><dt><span className="legend-mark mark-overdue" aria-hidden="true" />Overdue</dt><dd>{counts.overdue}</dd></div>
-      </dl>
+      {/* The legend was removed: it repeated the exact counts the metric cards
+          beside this gauge already show, doubling vertical space for no new
+          information. The ratio itself (ready of all cases) stays in the
+          gauge's accessible label and centre readout. */}
     </article>
   );
 }
@@ -906,13 +934,14 @@ function DueTimeline({ data }: { data: TimelineData }) {
           <li><span className="legend-mark mark-ready" aria-hidden="true" />Ready</li>
           <li><span className="legend-mark mark-progress" aria-hidden="true" />In progress</li>
           <li><span className="legend-mark mark-overdue" aria-hidden="true" />Overdue</li>
+          <li><span className="legend-mark mark-today" aria-hidden="true" />Due today</li>
         </ul>
       </div>
       <ol className="timeline-days" aria-label={`Case due dates from ${formatDateOnly(data.first)} to ${formatDateOnly(data.last)}`}>
         {data.days.map((day) => {
           const summary = day.entries.length === 0
             ? "no cases due"
-            : day.entries.map(({ item, display }) => `${item.reference} for ${item.clinicName}, ${display.label.toLowerCase()}`).join("; ");
+            : day.entries.map(({ item, display }) => `${item.reference} for ${item.clinicName}, ${display.status === "READY" ? "ready" : "in progress"}${display.deadline === "overdue" ? ", overdue" : display.deadline === "today" ? ", due today" : ""}`).join("; ");
           return (
             <li
               key={day.key}
@@ -927,7 +956,7 @@ function DueTimeline({ data }: { data: TimelineData }) {
                   <span
                     key={item.id}
                     className={`timeline-dot ${timelineDotClass(display)}`}
-                    title={`${item.reference} · ${item.clinicName} · ${display.label}`}
+                    title={`${item.reference} · ${item.clinicName} · ${display.status === "READY" ? "Ready" : "In progress"}${display.deadline === "overdue" ? " · Overdue" : display.deadline === "today" ? " · Due today" : ""}`}
                   />
                 ))}
                 {day.entries.length > 3 && <span className="timeline-more">+{day.entries.length - 3}</span>}
@@ -942,7 +971,22 @@ function DueTimeline({ data }: { data: TimelineData }) {
 }
 
 function StatusPill({ display }: { display: ReturnType<typeof getDisplayStatus> }) {
-  return <span className={`status-pill ${display.className}`}><span className="status-dot" aria-hidden="true" />{display.label}</span>;
+  // Production status only; the deadline condition has its own badge so the
+  // two never overwrite each other (previously an overdue case lost its real
+  // status entirely because both shared one pill).
+  const label = display.status === "READY" ? "Ready" : "In progress";
+  const className = display.status === "READY" ? "status-ready" : "status-progress";
+  return <span className={`status-pill ${className}`}><span className="status-dot" aria-hidden="true" />{label}</span>;
+}
+
+function DeadlineBadge({ display }: { display: ReturnType<typeof getDisplayStatus> }) {
+  if (display.deadline === "overdue") {
+    return <span className="deadline-badge deadline-overdue"><Icon name="alert" size={12} /> Overdue</span>;
+  }
+  if (display.deadline === "today") {
+    return <span className="deadline-badge deadline-today"><Icon name="clock" size={12} /> Due today</span>;
+  }
+  return null;
 }
 
 function NotificationLabel({ status }: { status: LabCase["notificationStatus"] }) {

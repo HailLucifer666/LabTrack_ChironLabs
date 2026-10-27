@@ -6,7 +6,8 @@ A Next.js take-home MVP for Chiron Labs' Forward Deployed Engineer assignment. I
 
 ## Features
 
-- Responsive case dashboard with summary counts, case list, search and status filter.
+- Responsive case dashboard with summary counts, case list, search and status filter. The case list is the primary surface (before the schedule pulse in the DOM order) so production work is reachable without scrolling.
+- Separate deadline semantics: production status (In progress / Ready) and the deadline condition (Overdue / Due today / Upcoming) are independent signals. A ready-but-past-due case shows both its status and an Overdue badge; overdue filtering returns cases of any status; a case due today is never labelled overdue until the day has passed.
 - Date-only due dates (`YYYY-MM-DD`), formatted without parsing a date-only string as a timestamp. The lab's time zone is configurable for overdue labelling.
 - Mark a case Ready and trigger an email notification workflow.
 - Explicit test-mode preview showing recipient, subject and body; a configured Resend account can send live email only when the app is also running in database mode.
@@ -82,6 +83,8 @@ If either variable is missing, the API returns a test-mode preview and the UI ex
 
 For a genuine time-specific deadline, confirm the governing business time zone with the client and store the deadline instant plus its IANA zone separately. Do not use a hard-coded one-day correction.
 
+**Overdue policy (status-independent).** Overdue is derived from the calendar dates alone: `dueDate < todayDate` in `LAB_TIME_ZONE`. Production status is never consulted, so a case that is already marked Ready but passed its date still surfaces as overdue (it needs collecting) — previously this case was invisible behind its green Ready badge. "Due today" (`dueDate === todayDate`) is pressure, not lateness, and is never overdue until the day has passed.
+
 ## API routes
 
 - `GET /api/cases` — reads cases from Supabase or returns synthetic seeded data in demo mode.
@@ -100,7 +103,9 @@ For a genuine time-specific deadline, confirm the governing business time zone w
 ## Manual acceptance checklist
 
 - [ ] `2026-10-29` renders as **29 Oct 2026**, regardless of the browser time zone.
-- [ ] Overdue is derived by comparing date-only values to the current date in `LAB_TIME_ZONE`.
+- [ ] Overdue is derived by comparing date-only values to the current date in `LAB_TIME_ZONE`, independent of production status.
+- [ ] A Ready case past its due date shows its green Ready pill **and** an Overdue badge; the Overdue filter returns it as well as any in-progress overdue case.
+- [ ] A case due today (in `LAB_TIME_ZONE`) shows a "Due today" badge and is not labelled overdue.
 - [ ] Search finds cases by case reference, clinic name or case type.
 - [ ] Status filter works for In progress, Ready and Overdue.
 - [ ] Mark Ready updates the status and counts.
@@ -112,6 +117,7 @@ For a genuine time-specific deadline, confirm the governing business time zone w
 ## Known take-home limitations
 
 - Demo-mode state is browser-local rather than a shared durable database.
+- Re-opening a test-mode notification preview is intentionally idempotent (nothing is delivered, so nothing can be duplicated); only a confirmed live `SENT` state is hard-blocked from re-sending. The database-mode read-check-send race is documented above and remains a deliberate non-fix for this build.
 - The demo has no authentication, user roles or tenant isolation.
 - Notification history is represented on a case; a production build should add an immutable notifications table with provider response IDs, retry/deduplication rules, and delivery audit history.
 - `clinic-demo@example.com` and the other sample addresses are synthetic placeholders, not real delivery destinations.

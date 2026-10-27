@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test:dates": "node scripts/date-smoke-test.mjs",
     "test:demo": "node scripts/demo-smoke-test.mjs",
     "test:notify": "node scripts/notify-smoke-test.mjs",
