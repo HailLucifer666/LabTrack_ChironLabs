@@ -167,9 +167,9 @@ export default function Dashboard() {
         </a>
         <div className="sidebar-label">WORKSPACE</div>
         <nav className="side-nav" aria-label="Primary navigation">
-          <a className="nav-link active" href="#cases"><span className="nav-icon"><Icon name="calendar" /></span>Cases <span className="nav-count">{counts.total}</span></a>
-          <a className="nav-link muted-link" href="#cases" onClick={() => { setFilter("READY"); setQuery(""); }}><span className="nav-icon"><Icon name="check" /></span>Ready for clinic</a>
-          <a className="nav-link muted-link" href="#cases" onClick={() => { setFilter("OVERDUE"); setQuery(""); }}><span className="nav-icon"><Icon name="alert" /></span>Overdue cases{counts.overdue > 0 && <span className="nav-dot" />}</a>
+          <a className={`nav-link ${filter === "ALL" ? "active" : ""}`} href="#cases" aria-current={filter === "ALL" ? "page" : undefined}><span className="nav-icon"><Icon name="calendar" /></span>Cases <span className="nav-count">{counts.total}</span></a>
+          <a className={`nav-link muted-link ${filter === "READY" ? "active" : ""}`} href="#cases" aria-current={filter === "READY" ? "page" : undefined} onClick={() => { setFilter("READY"); setQuery(""); }}><span className="nav-icon"><Icon name="check" /></span>Ready for clinic</a>
+          <a className={`nav-link muted-link ${filter === "OVERDUE" ? "active" : ""}`} href="#cases" aria-current={filter === "OVERDUE" ? "page" : undefined} onClick={() => { setFilter("OVERDUE"); setQuery(""); }}><span className="nav-icon"><Icon name="alert" /></span>Overdue cases{counts.overdue > 0 && <span className="nav-dot" />}</a>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-help-icon">?</div>
@@ -186,7 +186,7 @@ export default function Dashboard() {
 
         <div className="page-content" id="cases">
           <div className="page-heading">
-            <div><div className="eyebrow">TODAY · {formatDateOnly(todayDate).toUpperCase()}</div><h1>Case overview</h1><p>Keep every case on track, from lab bench to clinic.</p></div>
+            <div><div className="eyebrow">LAB OPERATIONS <span aria-hidden="true">/</span> {formatDateOnly(todayDate).toUpperCase()}</div><h1>Case overview</h1><p>Your lab at a glance. Prioritise production, deadlines and clinic handoffs.</p></div>
             <button className="primary-button" onClick={() => setIsNewCaseOpen(true)}><Icon name="plus" size={17} /> New case</button>
           </div>
 
@@ -225,7 +225,7 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
-            <div className="table-footer"><span>Showing <strong>{visibleCases.length}</strong> of <strong>{cases.length}</strong> cases</span><span className="footer-timezone"><Icon name="clock" size={13} /> Deadlines use {labTimeZone}</span></div>
+            <div className="table-footer"><span>Showing <strong>{visibleCases.length}</strong> of <strong>{cases.length}</strong> cases</span><span className="footer-timezone" title={`Overdue status is calculated using ${labTimeZone}`}><Icon name="calendar" size={13} /> Due dates are calendar dates</span></div>
           </section>
           <footer className="page-footer"><span>© 2026 LabTrack · Dental lab operations</span><span>Built for clarity. Designed for the workbench.</span></footer>
         </div>
