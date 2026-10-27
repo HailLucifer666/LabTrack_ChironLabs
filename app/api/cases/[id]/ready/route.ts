@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { seedCases } from "@/lib/seed-data";
+import { fromDbCase } from "@/lib/case-mapping";
 import { getSupabaseServer, isDatabaseConfigured } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (error || !data) {
       return NextResponse.json({ error: "Could not mark this case ready." }, { status: 400 });
     }
-    return NextResponse.json({ ok: true, persisted: true, case: data });
+    return NextResponse.json({ ok: true, persisted: true, case: fromDbCase(data) });
   }
   const body = await request.json().catch(() => ({}));
   const submitted = body?.case;
