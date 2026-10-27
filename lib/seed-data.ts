@@ -54,7 +54,7 @@ export const seedCases: LabCase[] = [
     caseType: "Implant crown",
     dueDate: "2026-10-27",
     status: "READY",
-    notificationStatus: "SENT",
+    notificationStatus: "PREVIEWED",
     updatedAt: "2026-10-26T16:20:00.000Z",
   },
   {
