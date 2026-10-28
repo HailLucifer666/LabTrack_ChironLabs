@@ -68,6 +68,8 @@ type TimelineData = {
 const DAYS_PAST = 3;
 const DAYS_AHEAD = 10;
 const WEEKDAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
+
+const SIDEBAR_PREF_KEY = "labtrack-sidebar-visibility-v1";
 const LONG_DATE = new Intl.DateTimeFormat("en-GB", {
   weekday: "long",
   day: "numeric",
@@ -225,11 +227,14 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false);
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [newCase, setNewCase] = useState({ clinicName: "", clinicEmail: "", caseType: "Zirconia crown", dueDate: "2026-11-03" });
   const searchRef = useRef<HTMLInputElement>(null);
   const navToggleRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLElement | null>(null);
+  const pendingSidebarFocusRef = useRef(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
@@ -316,6 +321,37 @@ export default function Dashboard() {
     desktop.addEventListener("change", handleChange);
     return () => desktop.removeEventListener("change", handleChange);
   }, []);
+
+  // The stored preference is read after mount: reading it during the first
+  // render would make the server markup and the client render disagree.
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1025px)");
+    try {
+      if (desktop.matches && window.localStorage.getItem(SIDEBAR_PREF_KEY) === "collapsed") {
+        setIsSidebarCollapsed(true);
+      }
+    } catch { /* Storage unavailable — the sidebar just starts expanded. */ }
+  }, []);
+
+  const toggleSidebarCollapsed = () => {
+    const next = !isSidebarCollapsed;
+    pendingSidebarFocusRef.current = !next; // expand: move focus into the sidebar once it is visible again
+    setIsSidebarCollapsed(next);
+    try { window.localStorage.setItem(SIDEBAR_PREF_KEY, next ? "collapsed" : "expanded"); } catch { /* Session-only fallback. */ }
+    // When collapsing, the button keeps native click focus, so the attention
+    // pointer survives the sidebar leaving the accessibility tree.
+  };
+
+  // Runs after the class change is committed, so the sidebar is visible and
+  // focusable again before it receives focus. The pending flag keeps the
+  // mount-time restore (from localStorage) from stealing focus.
+  useEffect(() => {
+    if (!pendingSidebarFocusRef.current) return;
+    pendingSidebarFocusRef.current = false;
+    if (!isSidebarCollapsed) {
+      sidebarRef.current?.querySelector<HTMLElement>(".nav-link")?.focus();
+    }
+  }, [isSidebarCollapsed]);
 
   const persistDemoCases = (nextCases: LabCase[]) => {
     if (dataMode === "demo") {
@@ -462,7 +498,7 @@ export default function Dashboard() {
       <aside
         id="primary-sidebar"
         ref={sidebarRef}
-        className={`sidebar${isNavOpen ? " is-open" : ""}`}
+        className={`sidebar${isNavOpen ? " is-open" : ""}${isSidebarCollapsed ? " is-collapsed" : ""}`}
         aria-label="Workspace navigation"
         role={isNavOpen ? "dialog" : undefined}
         aria-modal={isNavOpen ? true : undefined}
@@ -518,6 +554,17 @@ export default function Dashboard() {
             <button ref={navToggleRef} type="button" className="icon-button nav-toggle" aria-label="Open navigation" aria-expanded={isNavOpen} aria-controls="primary-sidebar" onClick={() => setIsNavOpen(true)}>
               <Icon name="menu" size={22} />
             </button>
+            <button
+              ref={sidebarToggleRef}
+              type="button"
+              className="icon-button sidebar-toggle"
+              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!isSidebarCollapsed}
+              aria-controls="primary-sidebar"
+              onClick={toggleSidebarCollapsed}
+            >
+              <Icon name="chevron" size={22} />
+            </button>
             <nav className="breadcrumb" aria-label="Breadcrumb">
               <span className="crumb-root">Workspace</span>
               <span className="crumb-sep" aria-hidden="true">/</span>
@@ -541,16 +588,17 @@ export default function Dashboard() {
           <div className="page-heading">
             <div className="heading-copy">
               <div className="eyebrow">
-                <span className="eyebrow-line" aria-hidden="true" />
                 Lab operations{todayDate && <><span aria-hidden="true">·</span>{formatDateOnly(todayDate)}</>}
               </div>
-              <h1>Case <em>overview</em></h1>
-              <p>Your lab at a glance. Prioritise production, deadlines and clinic handoffs.</p>
+              <h1>Cases</h1>
+              <p>Manage clinic deadlines at a glance</p>
             </div>
             <button type="button" className="primary-button" onClick={() => setIsNewCaseOpen(true)}>
               <Icon name="plus" size={18} /> New case
             </button>
           </div>
+
+          {timeline ? <DueTimeline data={timeline} /> : isLoading ? <TimelineSkeleton /> : null}
 
           {dataMode === "demo" && (
             <div className="demo-banner" role="note">
@@ -741,8 +789,6 @@ export default function Dashboard() {
               </span>
             </div>
           </section>
-
-          {timeline ? <DueTimeline data={timeline} /> : isLoading ? <TimelineSkeleton /> : null}
 
           <footer className="page-footer">
             <span>© 2026 LabTrack · Dental lab operations</span>

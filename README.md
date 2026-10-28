@@ -1,27 +1,41 @@
-# LabTrack — Dental case operations MVP
+# LabTrack — Dental Case Dashboard MVP
 
-A Next.js take-home MVP for Chiron Labs' Forward Deployed Engineer assignment. It demonstrates a cleaner dental case dashboard, date-only due-date handling, a Mark Ready workflow, and an email notification preview with an optional live-send path.
+A Next.js take-home assignment for Chiron Labs' Forward Deployed Engineer role. Demonstrates clean dental case management with date-only due dates, time-zone-aware overdue logic, and a Mark Ready notification workflow.
 
-> **Demo safety note:** The default configuration is `Demo mode`. Sample cases are synthetic, case edits are stored in the current browser's local storage, and notifications produce an email preview only. No real email is delivered unless the app is running in database mode, server-side email credentials are configured, and the recipient is not a reserved placeholder address. This demo does not include authentication and must not be used with real patient or clinic data without appropriate security work.
+## Overview
 
-## Features
+LabTrack is a clinical case management dashboard handling:
 
-- Responsive case dashboard with summary counts, case list, search and status filter. The case list is the primary surface (before the schedule pulse in the DOM order) so production work is reachable without scrolling.
-- Separate deadline semantics: production status (In progress / Ready) and the deadline condition (Overdue / Due today / Upcoming) are independent signals. A ready-but-past-due case shows both its status and an Overdue badge; overdue filtering returns cases of any status; a case due today is never labelled overdue until the day has passed.
-- Date-only due dates (`YYYY-MM-DD`), formatted without parsing a date-only string as a timestamp. The lab's time zone is configurable for overdue labelling.
-- Mark a case Ready and trigger an email notification workflow.
-- Explicit test-mode preview showing recipient, subject and body; a configured Resend account can send live email only when the app is also running in database mode.
-- Optional Supabase Postgres persistence for cases and notification status.
-- Synthetic seeded data and SQL schema.
+- **Responsive case list** with summary counts, search, and status filter
+- **Dual semantics**: production status (In progress / Ready) independent of deadline condition (Overdue / Due today / Upcoming)
+- **Date-only due dates** (`YYYY-MM-DD`) formatted without timestamp parsing, preventing one-day shifts across time zones
+- **Mark Ready** workflow with email notification preview/send
+- **Optional Supabase** persistence for cases and notification status
+- **Synthetic seeded data** with SQL schema for local setup
+
+## Demo Mode (default)
+
+The app runs in demo mode with no authentication, no real email delivery, and browser-local state. Sample cases are synthetic — do not use with real patient or clinic data without appropriate security work.
+
+## Core Features
+
+| Feature | Description |
+|---|---|
+| Case dashboard | Primary surface with summary counts, search, and status filter |
+| Date handling | `YYYY-MM-DD` only; `formatDateOnly()` prevents timezone drift |
+| Status/Deadline duality | Ready/In progress coexists with Overdue/Due today/Upcoming; a Ready case past its date still shows Overdue |
+| Mark Ready | Triggers email notification workflow (test preview or live send) |
+| Supabase persistence | Optional — `DATE` column, seeded schema included |
+| Notification preview | Test mode shows recipient/subject/body; live send requires Resend + database mode |
 
 ## Requirements
 
-- Node.js 20+ (Node.js 22 recommended).
-- npm.
-- Optional: Supabase project for persistent database-backed cases.
-- Optional: Resend account and verified sender for live email delivery (requires database mode; demo mode always previews).
+- **Node.js 20+** (Node.js 22 recommended)
+- **npm**
+- **Optional**: Supabase project for persistent, database-backed cases
+- **Optional**: Resend account and verified sender for live email (requires database mode)
 
-## Run locally
+## Quick Start
 
 ```bash
 npm install
@@ -29,21 +43,25 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Run the test suite after installing dependencies:
+Run the test suite:
 
 ```bash
 npm test
 ```
 
-This runs three compiled-in-place smoke suites: date-only formatting and time-zone rollover (`test:dates`), demo-state sanitising of hostile/corrupted browser storage (`test:demo`), and the notification send/preview boundary matrix (`test:notify`).
+This runs four compiled-in-place smoke suites:
+- `test:dates` — date-only formatting and time-zone rollover
+- `test:demo` — demo-state sanitising of hostile/corrupted browser storage
+- `test:notify` — notification send/preview boundary matrix
+- `test:routes` — route boundary checks (no demo email delivery, payload validation)
 
-Open `http://localhost:3000`. With no Supabase or Resend credentials, the app runs in clearly labelled demo mode.
+Open `http://localhost:3000`. Without Supabase or Resend credentials, the app runs in clearly labelled demo mode.
 
-## Persistent database setup (optional but recommended for deployment)
+## Persistent Database (optional, recommended for deployment)
 
-1. Create a Supabase project.
-2. Open its SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql).
-3. Copy the Project URL and service role key into `.env.local`:
+1. Create a Supabase project
+2. Run [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor
+3. Add to `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
@@ -51,74 +69,62 @@ SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 LAB_TIME_ZONE=Asia/Kolkata
 ```
 
-The service-role key is server-side only. Never prefix it with `NEXT_PUBLIC_`, never commit it, and never put it in browser code. Because this take-home does not implement authentication, do not add real clinic or patient data. Before production use, add authentication/authorization and appropriate Supabase Row Level Security policies.
+> **Never** commit the service-role key to the browser or repo. This take-home does not implement authentication — do not add real clinic or patient data before adding auth and Row Level Security policies.
 
-## Enable real email delivery (optional)
+## Live Email (optional)
 
-Live sending requires all three: Supabase configured (database mode), both email variables below, and a recipient that is not an `@example.com` placeholder.
-
-1. Configure a Resend account and verify the sender domain/address.
-2. Add these environment variables on the server and in Vercel Project Settings → Environment Variables:
+Requires all three: Supabase project configured (database mode), both variables set, and a non-placeholder recipient.
 
 ```bash
 RESEND_API_KEY=re_...
 EMAIL_FROM=LabTrack <notifications@your-verified-domain.example>
 ```
 
-If either variable is missing, the API returns a test-mode preview and the UI explicitly says **no email was delivered**. In demo mode (no Supabase configuration) the API always returns a preview and never contacts the provider, even if both email variables are set — demo workspaces cannot send real email. If live mode is configured, the server sends email via Resend; no secret is bundled into client JavaScript.
+If either variable is missing, the API returns a test-mode preview and the UI states no email was delivered. Demo mode cannot send real email even if both variables are set.
 
-## Environment variables
+## Environment Variables
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Optional | Enables Supabase-backed case storage when paired with the service key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Optional, server only | Authenticates server route handlers to Supabase |
-| `LAB_TIME_ZONE` | Optional; defaults to `Asia/Kolkata` | IANA zone used to determine the business date for overdue status |
-| `RESEND_API_KEY` | Optional | Enables actual email delivery when the app is in database mode and the recipient is not a placeholder |
+| `NEXT_PUBLIC_SUPABASE_URL` | Optional | Enables Supabase-backed case storage |
+| `SUPABASE_SERVICE_ROLE_KEY` | Optional, server only | Authenticates server route handlers |
+| `LAB_TIME_ZONE` | Optional; defaults to `Asia/Kolkata` | IANA zone for business-date overdue logic |
+| `RESEND_API_KEY` | Optional | Enables actual email delivery |
 | `EMAIL_FROM` | Optional | Verified sender identity for Resend |
 
-## Date-handling decision
+## Date-Handling Decision
 
-`due_date` is stored as a Postgres `DATE` and represented in the app as `YYYY-MM-DD`. A calendar due date is not an instant in time, so the UI must not parse it with `new Date('YYYY-MM-DD')` and then display it in the viewer's local time zone. `formatDateOnly()` formats the year/month/day components directly, preventing a one-day shift across positive and negative UTC offsets.
+`due_date` is stored as Postgres `DATE` and represented as `YYYY-MM-DD`. A calendar due date is **not** an instant in time — the UI must not parse it with `new Date('YYYY-MM-DD')` and display it in the viewer's local zone. `formatDateOnly()` formats year/month/day components directly, preventing one-day shifts across positive and negative UTC offsets.
 
-For a genuine time-specific deadline, confirm the governing business time zone with the client and store the deadline instant plus its IANA zone separately. Do not use a hard-coded one-day correction.
+For time-specific deadlines, store the instant plus its IANA zone separately. Do not use a hard-coded one-day correction.
 
-**Overdue policy (status-independent).** Overdue is derived from the calendar dates alone: `dueDate < todayDate` in `LAB_TIME_ZONE`. Production status is never consulted, so a case that is already marked Ready but passed its date still surfaces as overdue (it needs collecting) — previously this case was invisible behind its green Ready badge. "Due today" (`dueDate === todayDate`) is pressure, not lateness, and is never overdue until the day has passed.
+### Overdue policy (status-independent)
 
-## API routes
+Overdue is derived from calendar dates alone: `dueDate < todayDate` in `LAB_TIME_ZONE`. Production status is never consulted — a case already marked Ready but past its date still surfaces as overdue (it needs collecting). "Due today" (`dueDate === todayDate`) is pressure, not lateness, and is never overdue until the day has passed.
 
-- `GET /api/cases` — reads cases from Supabase or returns synthetic seeded data in demo mode.
-- `POST /api/cases` — creates a case in Supabase or returns a demo case that is stored in browser local storage.
-- `PATCH /api/cases/:id/ready` — marks a case Ready in Supabase or updates demo state in the browser.
-- `POST /api/cases/:id/notify` — sends via Resend only when the app is in database mode, a provider is configured and the recipient is not a placeholder; otherwise returns an explicit test-mode email preview.
+## API Routes
 
-## Deploy to Vercel
+| Route | Description |
+|---|---|
+| `GET /api/cases` | Reads cases from Supabase or returns synthetic seeded data in demo mode |
+| `POST /api/cases` | Creates a case in Supabase or returns a demo case (browser local storage) |
+| `PATCH /api/cases/:id/ready` | Marks a case Ready in Supabase or updates demo state |
+| `POST /api/cases/:id/notify` | Sends via Resend only in database mode with a non-placeholder recipient; otherwise returns test-mode preview |
 
-1. Create a **public GitHub repository** and push this project.
-2. In Vercel, select **Add New → Project**, import the GitHub repository and keep the Next.js defaults.
-3. Add the environment variables from `.env.example`. For a quick demo, the database and live-email variables can be omitted; the dashboard will stay in demo/test mode. For durable shared data, configure Supabase before deploying.
-4. Deploy. Open the production URL in a fresh browser and smoke-test the cases list, date display, mark-ready action and test email preview.
-5. Confirm the UI accurately discloses demo mode if Supabase/Resend are not configured.
+## Limitations (known)
 
-## Manual acceptance checklist
+- Demo-mode state is browser-local, not a shared durable database
+- No authentication, user roles, or tenant isolation
+- Notification history represented on a case only — production should add an immutable notifications table with provider response IDs, retry/deduplication, and delivery audit history
+- Sample addresses (`clinic-demo@example.com`, etc.) are synthetic placeholders
+- Email is the first notification channel per the assignment; WhatsApp is out of scope
 
-- [ ] `2026-10-29` renders as **29 Oct 2026**, regardless of the browser time zone.
-- [ ] Overdue is derived by comparing date-only values to the current date in `LAB_TIME_ZONE`, independent of production status.
-- [ ] A Ready case past its due date shows its green Ready pill **and** an Overdue badge; the Overdue filter returns it as well as any in-progress overdue case.
-- [ ] A case due today (in `LAB_TIME_ZONE`) shows a "Due today" badge and is not labelled overdue.
-- [ ] Search finds cases by case reference, clinic name or case type.
-- [ ] Status filter works for In progress, Ready and Overdue.
-- [ ] Mark Ready updates the status and counts.
-- [ ] Notify opens an email preview in test mode and clearly states no message was delivered.
-- [ ] Invalid or unsuccessful operations show an error instead of a false success.
-- [ ] New cases can be created; in demo mode they persist only in the current browser.
-- [ ] Public deployment and repository include no secrets.
+## Run tests
 
-## Known take-home limitations
+```bash
+npm test
+```
 
-- Demo-mode state is browser-local rather than a shared durable database.
-- Re-opening a test-mode notification preview is intentionally idempotent (nothing is delivered, so nothing can be duplicated); only a confirmed live `SENT` state is hard-blocked from re-sending. The database-mode read-check-send race is documented above and remains a deliberate non-fix for this build.
-- The demo has no authentication, user roles or tenant isolation.
-- Notification history is represented on a case; a production build should add an immutable notifications table with provider response IDs, retry/deduplication rules, and delivery audit history.
-- `clinic-demo@example.com` and the other sample addresses are synthetic placeholders, not real delivery destinations.
-- WhatsApp is intentionally out of scope; email is the first notification channel per the assignment.
+This runs four compiled-in-place smoke suites: date-only formatting, demo-state sanitisation, the notification send/preview boundary matrix, and route boundary checks.
+
+Open `http://localhost:3000` to verify the dashboard, date display, mark-ready action, and test email preview.
