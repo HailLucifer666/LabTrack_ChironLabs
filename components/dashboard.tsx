@@ -602,13 +602,10 @@ export default function Dashboard() {
 
           {dataMode === "demo" && (
             <div className="demo-banner" role="note">
-              <span className="demo-banner-icon"><Icon name="alert" size={18} /></span>
-              <div className="demo-banner-copy">
-                <strong>Demo mode is on</strong>
-                <span>Sample data is stored in this browser. Notifications open a preview and are never delivered.</span>
-              </div>
+              <span className="demo-banner-icon"><Icon name="alert" size={15} /></span>
+              <span className="demo-banner-copy">Demo mode — data lives in this browser; notifications preview only.</span>
               <button type="button" className="banner-button" onClick={resetDemoData}>
-                <Icon name="refresh" size={16} /> Reset sample data
+                <Icon name="refresh" size={15} /> Reset sample data
               </button>
             </div>
           )}
@@ -624,7 +621,7 @@ export default function Dashboard() {
           </section>
 
           {/* The case list is the operator's primary surface: it renders before
-              the schedule pulse so production work is reachable without
+              the due-date timeline so production work is reachable without
               scrolling past analytics on a desktop viewport. */}
           <section className="cases-panel" aria-labelledby="cases-title" aria-busy={isLoading}>
             <div className="panel-head">
@@ -973,7 +970,7 @@ function DueTimeline({ data }: { data: TimelineData }) {
       <div className="timeline-head">
         <div>
           <span className="card-kicker">Schedule</span>
-          <h2 id="timeline-title">Due-date pulse</h2>
+          <h2 id="timeline-title">Due dates</h2>
           <p>{formatRange(data.first, data.last)} <span aria-hidden="true">·</span> Today is {formatDateOnly(data.todayKey)}</p>
         </div>
         <ul className="timeline-legend" aria-label="Status key">

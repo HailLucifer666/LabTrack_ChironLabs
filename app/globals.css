@@ -79,8 +79,8 @@
 
   /* Layout */
   --sidebar-w: 272px;
-  --gutter: clamp(20px, 3vw, 44px);
-  --content-max: 1400px;
+  --gutter: clamp(20px, 2.5vw, 32px);
+  --content-max: 1840px;
 
   /* Layers */
   --z-topbar: 20;
@@ -657,15 +657,24 @@ h1 em {
   background: var(--sage-50);
 }
 
+/* Visually 36px, hit area extended to the standard 44px by the invisible
+   overlay below — keeps the compact strip while preserving the target. */
 .banner-button {
-  min-height: 44px;
-  padding: 0 14px;
+  position: relative;
+  min-height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--amber-line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--amber);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+}
+
+.banner-button::after {
+  content: "";
+  position: absolute;
+  inset: -6px -6px;
 }
 
 .banner-button:hover {
@@ -676,44 +685,43 @@ h1 em {
 .demo-banner {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   margin-bottom: 12px;
-  padding: 8px 12px;
+  padding: 4px 10px;
   border: 1px solid var(--amber-line);
   border-left: 3px solid var(--amber);
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(100deg, #fcf4e5, #fdfbf5);
 }
 
 .demo-banner-icon {
   display: grid;
-  flex: 0 0 30px;
+  flex: 0 0 22px;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: #f5e5c8;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: rgba(245, 229, 200, 0.6);
   color: var(--amber);
 }
 
+/* Single compact line: the truth must stay visible, it just has no
+   business taking two rows of the screen. */
 .demo-banner-copy {
-  display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: 2px;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--amber-body);
+  font-size: 12px;
+  line-height: 22px;
 }
 
 .demo-banner-copy strong {
   color: var(--amber);
   font-size: 12px;
   font-weight: 700;
-}
-
-.demo-banner-copy span {
-  color: var(--amber-body);
-  font-size: 12px;
-  line-height: 1.3;
 }
 
 /* ============================================================
@@ -986,7 +994,7 @@ h1 em {
 .tone-amber .metric-bar > span { background: #d9b173; }
 
 /* ============================================================
-   Due-date pulse
+   Due dates
    ============================================================ */
 
 .timeline-card {
@@ -2466,7 +2474,12 @@ kbd {
     padding: 8px 12px;
   }
 
-  .demo-banner-copy { flex: 1 1 calc(100% - 50px); }
+  .demo-banner-copy {
+    flex: 1 1 calc(100% - 40px);
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.4;
+  }
 
   .banner-button {
     width: 100%;
