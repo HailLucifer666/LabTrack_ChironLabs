@@ -5,12 +5,21 @@
  * pins `timeZone: "UTC"` and is fed an explicit UTC Date, so the day shown is
  * always the calendar day in the string.
  */
-const DATE_ONLY_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
+/**
+ * Build the date-only formatter for an explicit IANA zone. The zone is pinned
+ * here rather than inherited from the process, so callers can never render a
+ * different calendar day than the one the string names.
+ */
+export function createDateOnlyFormatter(timeZone = "UTC"): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone,
+  });
+}
+
+const DATE_ONLY_FORMATTER = createDateOnlyFormatter();
 
 /**
  * Unparseable or impossible dates pass through unchanged rather than being

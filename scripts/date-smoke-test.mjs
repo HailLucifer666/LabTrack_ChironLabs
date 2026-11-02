@@ -8,17 +8,21 @@ import { compile } from "./_compile.mjs";
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "labtrack-date-"));
 compile(outDir, "lib/date.ts", "date.mjs");
 try {
-  const { formatDateOnly, isValidDateOnly, isCaseOverdue, isDueToday, todayDateInTimeZone } = await import(pathToFileURL(path.join(outDir, "date.mjs")).href);
+  const { formatDateOnly, isValidDateOnly, isCaseOverdue, isDueToday, todayDateInTimeZone, createDateOnlyFormatter } = await import(pathToFileURL(path.join(outDir, "date.mjs")).href);
 
-  // formatDateOnly must never route through an instant. The TZ loop below is
-  // vacuous against today's pure-regex implementation by construction, but it
-  // fails loudly if anyone reintroduces `new Date(isoDate)` here.
-  for (const timeZone of ["UTC", "Asia/Kolkata", "Europe/London", "America/New_York", "Asia/Tokyo", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Honolulu"]) {
-    process.env.TZ = timeZone;
-    assert.equal(formatDateOnly("2026-10-29"), "29 Oct 2026", `Calendar date shifted in ${timeZone}`);
-  }
-  process.env.TZ = "UTC";
+  // The formatter pins UTC, so the calendar day in a date-only string can never
+  // shift with the viewer's zone. Asserted directly rather than via
+  // process.env.TZ, which Node on Windows ignores at runtime.
+  assert.equal(formatDateOnly("2026-10-29"), "29 Oct 2026");
   assert.equal(formatDateOnly("2026-02-03"), "3 Feb 2026");
+
+  // Platform-independent proof that the factory honors the zone it is given:
+  // one instant, two zones on opposite sides of the date line, two different
+  // calendar days. If a future change stops passing timeZone through, this
+  // fails on every platform, not just POSIX CI.
+  const dateLineInstant = new Date(Date.UTC(2026, 9, 27, 23, 30));
+  assert.equal(createDateOnlyFormatter("Pacific/Honolulu").format(dateLineInstant), "27 Oct 2026");
+  assert.equal(createDateOnlyFormatter("Asia/Kolkata").format(dateLineInstant), "28 Oct 2026");
 
   // Unparseable or calendar-impossible input passes through unchanged rather than
   // being rendered as plausible-looking nonsense. The impossible-date case is
