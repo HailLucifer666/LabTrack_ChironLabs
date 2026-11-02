@@ -176,6 +176,9 @@ try {
   const malformedRes = await notify("case-9001", { case: { ...readyCase, caseType: { evil: "object" } } });
   assert.equal(malformedRes.status, 400, "A malformed case payload is a bad request, not a 500");
 
+  const invalidEmailRes = await notify("case-9001", { case: { ...readyCase, clinicEmail: "not-an-email" } });
+  assert.equal(invalidEmailRes.status, 400, "Notify must reject an invalid clinic email before any preview");
+
   const sentRes = await notify("case-9001", { case: { ...readyCase, notificationStatus: "SENT" } });
   const sent = await sentRes.json();
   assert.equal(sentRes.status, 409);
