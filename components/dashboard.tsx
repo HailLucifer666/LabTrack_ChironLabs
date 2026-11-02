@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { formatDateOnly, isCaseOverdue, isDueToday, isValidDateOnly } from "@/lib/date";
-import { DEMO_STORAGE_KEY, sanitizeStoredCases } from "@/lib/demo-state";
+import { DEMO_STORAGE_KEY, sanitizeStoredCases, persistDemoCases as writeDemoCasesToStorage, clearDemoCases } from "@/lib/demo-state";
 import type { CaseListResponse, EmailPreview, LabCase } from "@/lib/types";
 
 type Filter = "ALL" | "IN_PROGRESS" | "READY" | "OVERDUE";
@@ -349,9 +349,7 @@ export default function Dashboard() {
   }, [isSidebarCollapsed]);
 
   const persistDemoCases = (nextCases: LabCase[]) => {
-    if (dataMode === "demo") {
-      try { window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(nextCases)); } catch { /* Demo remains usable for this session if storage is unavailable. */ }
-    }
+    if (dataMode === "demo") writeDemoCasesToStorage(nextCases);
   };
 
   const decoratedCases = useMemo(() => cases.map((item) => ({ item, display: getDisplayStatus(item, todayDate) })), [cases, todayDate]);
@@ -451,7 +449,7 @@ export default function Dashboard() {
   }
 
   function resetDemoData() {
-    try { window.localStorage.removeItem(DEMO_STORAGE_KEY); } catch { /* Storage unavailable — reloading is still the right recovery. */ }
+    clearDemoCases();
     void reload();
     setNotice({ kind: "info", text: "Demo data reset to the original sample cases." });
   }

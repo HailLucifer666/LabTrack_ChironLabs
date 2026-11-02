@@ -24,7 +24,7 @@ try {
   compile(outDir, "lib/date.ts", "date.mjs");
   compile(outDir, "lib/types.ts", "types.mjs");
   compile(outDir, "lib/demo-state.ts", "demo-state.mjs", { "@/lib/date": "./date.mjs", "@/lib/types": "./types.mjs" });
-  const { sanitizeStoredCases } = await import(pathToFileURL(path.join(outDir, "demo-state.mjs")).href);
+  const { sanitizeStoredCases, persistDemoCases, clearDemoCases } = await import(pathToFileURL(path.join(outDir, "demo-state.mjs")).href);
   const { isValidDateOnly } = await import(pathToFileURL(path.join(outDir, "date.mjs")).href);
 
   // Unusable shapes fall back to seeded data (null).
@@ -69,7 +69,32 @@ try {
   assert.equal(isValidDateOnly("2026-10-29T00:00:00Z"), false, "Only date-only strings are accepted");
   assert.equal(isValidDateOnly(20261029), false);
 
-  console.log("Demo-state sanitizer tests passed: hostile shapes, partial corruption, enums, calendar dates, dedupe.");
+  // Persistence helpers must write the exact shared key, survive a throwing
+  // storage (private-mode / quota), and clear the same key again.
+  const stored = [];
+  const goodStorage = {
+    setItem(key, value) { stored.push([key, String(value)]); },
+    removeItem(key) {
+      const index = stored.findIndex(([entryKey]) => entryKey === key);
+      if (index !== -1) stored.splice(index, 1);
+    },
+  };
+  const throwingStorage = {
+    setItem() { throw new Error("quota exceeded"); },
+    removeItem() { throw new Error("storage unavailable"); },
+  };
+  persistDemoCases([validCase()], goodStorage);
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0][0], "labtrack-cases-v1", "Persistence must use the shared DEMO_STORAGE_KEY");
+  assert.equal(stored[0][1], JSON.stringify([validCase()]));
+  persistDemoCases([validCase({ id: "case-2" })], goodStorage);
+  assert.equal(stored.length, 2);
+  clearDemoCases(goodStorage);
+  assert.equal(stored.length, 1, "clear must remove the demo key, not unrelated keys");
+  persistDemoCases([validCase()], throwingStorage); // must not throw
+  clearDemoCases(throwingStorage); // must not throw
+
+  console.log("Demo-state tests passed: hostile shapes, partial corruption, enums, calendar dates, dedupe, persist/clear with good and throwing storage.");
 } finally {
   fs.rmSync(outDir, { recursive: true, force: true });
 }

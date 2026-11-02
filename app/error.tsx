@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { DEMO_STORAGE_KEY } from "@/lib/demo-state";
+import { clearDemoCases } from "@/lib/demo-state";
 
 /**
  * Last line of defence: if a render error ever escapes again, the user gets a
@@ -16,11 +16,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   }, [error]);
 
   function resetDemoData() {
-    try {
-      window.localStorage.removeItem(DEMO_STORAGE_KEY);
-    } catch {
-      /* Storage unavailable — reloading is still the right recovery. */
-    }
+    clearDemoCases();
     window.location.reload();
   }
 

@@ -59,3 +59,26 @@ export function sanitizeStoredCases(raw: unknown): LabCase[] | null {
   if (cases.length === 0 && raw.length > 0) return null;
   return cases;
 }
+
+/**
+ * Persist the tour's demo cases. Storage is best-effort: a private-mode
+ * browser or a full disk can make setItem throw, and the demo must stay usable
+ * for the session anyway. The read side sanitizes whatever actually landed, so
+ * a failed write can only cost persistence, never correctness.
+ */
+export function persistDemoCases(nextCases: LabCase[], storage: Pick<Storage, "setItem"> = globalThis.localStorage): void {
+  try {
+    storage.setItem(DEMO_STORAGE_KEY, JSON.stringify(nextCases));
+  } catch {
+    /* Demo remains usable for this session if storage is unavailable. */
+  }
+}
+
+/** Best-effort counterpart to persistDemoCases, used by the demo reset flow. */
+export function clearDemoCases(storage: Pick<Storage, "removeItem"> = globalThis.localStorage): void {
+  try {
+    storage.removeItem(DEMO_STORAGE_KEY);
+  } catch {
+    /* Storage unavailable — reloading is still the right recovery. */
+  }
+}
