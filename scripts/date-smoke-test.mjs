@@ -1,20 +1,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
+import { compile } from "./_compile.mjs";
 
-const require = createRequire(import.meta.url);
-const ts = require("typescript");
-const source = fs.readFileSync(new URL("../lib/date.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2020 },
-}).outputText;
-const tempFile = path.join(os.tmpdir(), `labtrack-date-${process.pid}.mjs`);
-fs.writeFileSync(tempFile, compiled, "utf8");
+const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "labtrack-date-"));
+compile(outDir, "lib/date.ts", "date.mjs");
 try {
-  const { formatDateOnly, isValidDateOnly, isCaseOverdue, isDueToday, todayDateInTimeZone } = await import(pathToFileURL(tempFile).href);
+  const { formatDateOnly, isValidDateOnly, isCaseOverdue, isDueToday, todayDateInTimeZone } = await import(pathToFileURL(path.join(outDir, "date.mjs")).href);
 
   // formatDateOnly must never route through an instant. The TZ loop below is
   // vacuous against today's pure-regex implementation by construction, but it
@@ -87,5 +81,5 @@ try {
 
   console.log("Date tests passed: date-only formatting across eight zones, calendar validation, overdue and due-today policy, TZ rollover at a fixed instant, env honouring, invalid-zone fallback.");
 } finally {
-  fs.rmSync(tempFile, { force: true });
+  fs.rmSync(outDir, { recursive: true, force: true });
 }

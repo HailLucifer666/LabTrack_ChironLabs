@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
+import { compile } from "./_compile.mjs";
 
 /**
  * Route-level proof, not just a unit proof.
@@ -19,20 +19,7 @@ import assert from "node:assert/strict";
  * be called. A mutant that sends turns the fetch stub into a throw and fails.
  */
 
-const require = createRequire(import.meta.url);
-const ts = require("typescript");
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "labtrack-routes-"));
-
-function compile(sourceFile, outputName, aliases = {}) {
-  const source = fs.readFileSync(new URL(`../${sourceFile}`, import.meta.url), "utf8");
-  let code = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2020 },
-  }).outputText;
-  for (const [from, to] of Object.entries(aliases)) {
-    code = code.split(`"${from}"`).join(`"${to}"`);
-  }
-  fs.writeFileSync(path.join(outDir, outputName), code, "utf8");
-}
 
 function writeStub(name, body) {
   fs.writeFileSync(path.join(outDir, name), body, "utf8");
@@ -46,6 +33,7 @@ const LIB_ALIASES = {
   "@/lib/case-mapping": "./case-mapping.mjs",
   "@/lib/demo-state": "./demo-state.mjs",
   "@/lib/supabase-server": "./supabase-server.mjs",
+  "@/lib/validation": "./validation.mjs",
 };
 
 const savedEnv = {
@@ -74,21 +62,22 @@ try {
     throw new Error("Supabase client must not be created in demo mode");
   }`);
 
-  compile("lib/types.ts", "types.mjs");
-  compile("lib/date.ts", "date.mjs");
-  compile("lib/notify-decision.ts", "notify-decision.mjs", LIB_ALIASES);
-  compile("lib/seed-data.ts", "seed-data.mjs", LIB_ALIASES);
-  compile("lib/case-mapping.ts", "case-mapping.mjs", LIB_ALIASES);
-  compile("lib/demo-state.ts", "demo-state.mjs", LIB_ALIASES);
-  compile("lib/supabase-server.ts", "supabase-server.mjs", {
+  compile(outDir, "lib/types.ts", "types.mjs");
+  compile(outDir, "lib/date.ts", "date.mjs");
+  compile(outDir, "lib/notify-decision.ts", "notify-decision.mjs", LIB_ALIASES);
+  compile(outDir, "lib/seed-data.ts", "seed-data.mjs", LIB_ALIASES);
+  compile(outDir, "lib/case-mapping.ts", "case-mapping.mjs", LIB_ALIASES);
+  compile(outDir, "lib/demo-state.ts", "demo-state.mjs", LIB_ALIASES);
+  compile(outDir, "lib/validation.ts", "validation.mjs");
+  compile(outDir, "lib/supabase-server.ts", "supabase-server.mjs", {
     ...LIB_ALIASES,
     "@supabase/supabase-js": "./supabase-js-stub.mjs",
   });
-  compile("app/api/cases/route.ts", "cases-route.mjs", {
+  compile(outDir, "app/api/cases/route.ts", "cases-route.mjs", {
     ...LIB_ALIASES,
     "next/server": "./next-server.mjs",
   });
-  compile("app/api/cases/[id]/notify/route.ts", "notify-route.mjs", {
+  compile(outDir, "app/api/cases/[id]/notify/route.ts", "notify-route.mjs", {
     ...LIB_ALIASES,
     "next/server": "./next-server.mjs",
   });

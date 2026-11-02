@@ -1,28 +1,15 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
+import { compile } from "./_compile.mjs";
 
-const require = createRequire(import.meta.url);
-const ts = require("typescript");
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "labtrack-notify-"));
 
-function compileModule(sourceFile, outputName, aliasMap = {}) {
-  const source = fs.readFileSync(new URL(`../lib/${sourceFile}`, import.meta.url), "utf8");
-  let compiled = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2020 },
-  }).outputText;
-  for (const [alias, target] of Object.entries(aliasMap)) {
-    compiled = compiled.split(`"${alias}"`).join(`"${target}"`);
-  }
-  fs.writeFileSync(path.join(outDir, outputName), compiled, "utf8");
-}
-
 try {
-  compileModule("types.ts", "types.mjs");
-  compileModule("notify-decision.ts", "notify-decision.mjs", { "@/lib/types": "./types.mjs" });
+  compile(outDir, "lib/types.ts", "types.mjs");
+  compile(outDir, "lib/notify-decision.ts", "notify-decision.mjs", { "@/lib/types": "./types.mjs" });
   const { decideNotification, isSyntheticRecipient, previewNotice } = await import(
     pathToFileURL(path.join(outDir, "notify-decision.mjs")).href
   );
