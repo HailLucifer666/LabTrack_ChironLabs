@@ -20,6 +20,14 @@ try {
   process.env.TZ = "UTC";
   assert.equal(formatDateOnly("2026-02-03"), "3 Feb 2026");
 
+  // Unparseable or calendar-impossible input passes through unchanged rather than
+  // being rendered as plausible-looking nonsense. The impossible-date case is
+  // pinned: the old regex-only formatter turned "2026-02-31" into "31 Feb 2026".
+  assert.equal(formatDateOnly("garbage"), "garbage");
+  assert.equal(formatDateOnly("2026-13-01"), "2026-13-01");
+  assert.equal(formatDateOnly("2026-02-31"), "2026-02-31");
+  assert.equal(formatDateOnly(""), "");
+
   // Overdue is a pure calendar condition and is independent of production
   // status: a ready case past its date is still overdue (it needs collecting),
   // and "due today" is never overdue until the day has passed.

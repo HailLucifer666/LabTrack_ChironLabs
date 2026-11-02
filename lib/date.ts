@@ -1,17 +1,26 @@
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /**
  * Format a date-only ISO string without converting it into an instant.
  * Avoid `new Date("YYYY-MM-DD")`, which can shift the calendar day for users
- * west of UTC when later formatted in their local time zone.
+ * west of UTC when later formatted in their local time zone. The formatter
+ * pins `timeZone: "UTC"` and is fed an explicit UTC Date, so the day shown is
+ * always the calendar day in the string.
+ */
+const DATE_ONLY_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/**
+ * Unparseable or impossible dates pass through unchanged rather than being
+ * rendered as plausible-looking nonsense (the old regex-only form allowed
+ * "2026-02-31" to surface as "31 Feb 2026").
  */
 export function formatDateOnly(isoDate: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-  if (!match) return isoDate;
-  const [, year, month, day] = match;
-  const monthIndex = Number(month) - 1;
-  if (monthIndex < 0 || monthIndex > 11) return isoDate;
-  return `${Number(day)} ${MONTHS[monthIndex]} ${year}`;
+  if (!isValidDateOnly(isoDate)) return isoDate;
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return DATE_ONLY_FORMATTER.format(new Date(Date.UTC(year, month - 1, day)));
 }
 
 /**
