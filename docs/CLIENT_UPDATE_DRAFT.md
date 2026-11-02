@@ -11,6 +11,6 @@ The current build is using **demo/test mode**: the case edits are stored in the 
 I haven’t added WhatsApp yet because email was the agreed first step and it lets us validate the workflow sooner. Before using this with real clinics, please confirm which time zone should govern overdue cases, which clinic contact should receive each email, and the preferred sender/message wording.
 
 Thanks,  
-[Your name]
+Arghya Chowdhury
 
 > Before sending, update this draft to match the actual deployed configuration and features. Do not claim live email delivery or persistent shared storage unless you have configured and tested them.
