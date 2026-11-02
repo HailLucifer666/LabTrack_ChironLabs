@@ -1,6 +1,9 @@
 import { isValidDateOnly } from "@/lib/date";
 import type { CaseStatus, LabCase, NotificationStatus } from "@/lib/types";
 
+/** localStorage key for the visitor's demo case list. */
+export const DEMO_STORAGE_KEY = "labtrack-cases-v1";
+
 const CASE_STATUSES: readonly string[] = ["IN_PROGRESS", "READY"] satisfies CaseStatus[];
 const NOTIFICATION_STATUSES: readonly string[] = ["NOT_SENT", "PREVIEWED", "SENT", "FAILED"] satisfies NotificationStatus[];
 

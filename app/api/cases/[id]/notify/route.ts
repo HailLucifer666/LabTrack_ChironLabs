@@ -4,6 +4,7 @@ import { fromDbCase } from "@/lib/case-mapping";
 import { getSupabaseServer, isDatabaseConfigured } from "@/lib/supabase-server";
 import { decideNotification, previewNotice } from "@/lib/notify-decision";
 import { sanitizeStoredCases } from "@/lib/demo-state";
+import { EMAIL_PATTERN } from "@/lib/validation";
 import type { LabCase } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -68,7 +69,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         : "This demo case is already marked as notified.",
     }, { status: 409 });
   }
-  if (!item.clinicEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.clinicEmail)) {
+  if (!item.clinicEmail || !EMAIL_PATTERN.test(item.clinicEmail)) {
     return NextResponse.json({ error: "This case has no valid clinic email address." }, { status: 400 });
   }
 

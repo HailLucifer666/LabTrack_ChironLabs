@@ -11,7 +11,7 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatDateOnly, isCaseOverdue, isDueToday, isValidDateOnly } from "@/lib/date";
-import { sanitizeStoredCases } from "@/lib/demo-state";
+import { DEMO_STORAGE_KEY, sanitizeStoredCases } from "@/lib/demo-state";
 import type { CaseListResponse, EmailPreview, LabCase } from "@/lib/types";
 
 type Filter = "ALL" | "IN_PROGRESS" | "READY" | "OVERDUE";
@@ -244,7 +244,7 @@ export default function Dashboard() {
       let nextCases = payload.cases;
       if (payload.dataMode === "demo") {
         try {
-          const local = window.localStorage.getItem("labtrack-cases-v1");
+          const local = window.localStorage.getItem(DEMO_STORAGE_KEY);
           if (local) {
             const sanitized = sanitizeStoredCases(JSON.parse(local));
             if (sanitized) nextCases = sanitized;
@@ -351,7 +351,7 @@ export default function Dashboard() {
 
   const persistDemoCases = (nextCases: LabCase[]) => {
     if (dataMode === "demo") {
-      try { window.localStorage.setItem("labtrack-cases-v1", JSON.stringify(nextCases)); } catch { /* Demo remains usable for this session if storage is unavailable. */ }
+      try { window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(nextCases)); } catch { /* Demo remains usable for this session if storage is unavailable. */ }
     }
   };
 
@@ -452,7 +452,7 @@ export default function Dashboard() {
   }
 
   function resetDemoData() {
-    try { window.localStorage.removeItem("labtrack-cases-v1"); } catch { /* Storage unavailable — reloading is still the right recovery. */ }
+    try { window.localStorage.removeItem(DEMO_STORAGE_KEY); } catch { /* Storage unavailable — reloading is still the right recovery. */ }
     void reload();
     setNotice({ kind: "info", text: "Demo data reset to the original sample cases." });
   }
