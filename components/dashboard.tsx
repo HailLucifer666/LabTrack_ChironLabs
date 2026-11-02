@@ -9,7 +9,6 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import { formatDateOnly, isCaseOverdue, isDueToday, isValidDateOnly } from "@/lib/date";
 import { DEMO_STORAGE_KEY, sanitizeStoredCases } from "@/lib/demo-state";
 import type { CaseListResponse, EmailPreview, LabCase } from "@/lib/types";
@@ -1119,7 +1118,6 @@ function TimelineSkeleton() {
 
 function Dialog({ children, labelledBy, onClose, returnFocus }: { children: ReactNode; labelledBy: string; onClose: () => void; returnFocus?: HTMLElement | null }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const previouslyFocused = returnFocus ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
@@ -1169,18 +1167,15 @@ function Dialog({ children, labelledBy, onClose, returnFocus }: { children: Reac
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <motion.div
+      <div
         ref={panelRef}
         className="modal-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.985 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }
