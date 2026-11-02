@@ -38,7 +38,6 @@ type IconName =
   | "clock"
   | "alert"
   | "arrow"
-  | "external"
   | "copy"
   | "refresh"
   | "shield"
@@ -122,8 +121,6 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       return <svg {...shared}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
     case "close":
       return <svg {...shared}><path d="m6 6 12 12M18 6 6 18" /></svg>;
-    case "external":
-      return <svg {...shared}><path d="M14 4h6v6M20 4 11 13" /><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" /></svg>;
     case "copy":
       return <svg {...shared}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" /></svg>;
     case "refresh":
@@ -232,7 +229,6 @@ export default function Dashboard() {
   const searchRef = useRef<HTMLInputElement>(null);
   const navToggleRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
-  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLElement | null>(null);
   const pendingSidebarFocusRef = useRef(false);
 
@@ -555,7 +551,6 @@ export default function Dashboard() {
               <Icon name="menu" size={22} />
             </button>
             <button
-              ref={sidebarToggleRef}
               type="button"
               className="icon-button sidebar-toggle"
               aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}

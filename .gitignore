@@ -1,4 +1,5 @@
 node_modules/
+.zcode/
 .next/
 out/
 .env
