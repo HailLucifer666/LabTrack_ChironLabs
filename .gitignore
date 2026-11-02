@@ -1,5 +1,7 @@
 node_modules/
 .zcode/
+.worktrees/
+.cache/
 .next/
 out/
 .env
